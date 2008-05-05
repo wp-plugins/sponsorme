@@ -11,7 +11,7 @@ Plugin to run a sponsorship campaign that lets friends and family contribute to 
 == Description ==
 
 The SponsorMe plugin lets you organise your fund raising on your WordPress blog. It shows a graph of your target and how much money you have collected. It also lets users pledge an amount to you and sends them to PayPal to collect money directly from them.
-Most information at: http://www.wpauctions.com/
+Most information at: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 
 == Installation ==
 
