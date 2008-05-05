@@ -1,0 +1,433 @@
+<?php
+/*
+Plugin Name: Sponsor Me
+Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
+Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
+Version: 0.2
+Author: Owen Cutajar
+Author URI: http://www.u-g-h.com
+*/
+
+/* History:
+  v0.1 - OwenC - Created base version
+  v0.5 - OwenC - Prepared for public release
+*/
+
+// cater for stand-alone calls
+if (!function_exists('get_option'))
+	require_once('../../../wp-config.php');
+
+// Consts
+define('SM_PLUGIN_EXTERNAL_PATH', '/wp-content/plugins/sponsorme/');
+define('SM_PLUGIN_NAME', 'sponsorme.php');
+define('SM_PLUGIN_PATH', 'sponsorme/sponsorme.php');
+
+if (strstr($_SERVER['PHP_SELF'],SM_PLUGIN_EXTERNAL_PATH.SM_PLUGIN_NAME) && isset($_GET['graph'])) :
+
+   global $wpdb;
+   $table_name = $wpdb->prefix . "sponsorme";
+   $strSQL = "SELECT SUM(amount) FROM $table_name WHERE verified <> 'N'";
+   $thistotal = $wpdb->get_var($strSQL); 
+
+   $options = get_option('SponsorMe');
+   $title = $options['title'];
+   $targetdesc = $options['targetdesc'];
+   $targetamount = $options['targetamount'];
+   $currency = $options['currency'];
+   $paypal = $options['paypal'];
+   $pageID = $options['pageID'];
+
+   include('postgraph.class.php'); 
+
+   $data = array(1 => $thistotal,$targetamount);
+
+   if (isset($_GET['sidebar'])) {
+      $graph = new PostGraph(150,200);
+   } else {
+      $graph = new PostGraph(300,400);
+   }
+   $graph->setGraphTitles($targetdesc, 'Donated vs Needed', 'Cash');
+   $graph->setYNumberFormat('integer');
+   $graph->setYTicks(10);
+   $graph->setData($data);
+   $graph->setBackgroundColor(array(255,255,0));
+   $graph->setTextColor(array(144,144,144));
+   $graph->setXTextOrientation('horizontal');
+
+   // prepare image
+   $graph->drawImage();
+   $graph->printImage();
+
+   exit;
+endif;
+
+function widget_SponsorMe_init() {
+
+	if ( !function_exists('register_sidebar_widget') )
+		return;
+
+	function widget_SponsorMe($args) {
+
+		extract($args);
+
+		echo $before_widget;
+		docommon_SponsorMe_sidebar();
+		echo $after_widget;
+	}
+	
+	function widget_SponsorMe_control() {
+				
+		echo 'Please configure the widget from the SponsorMe Configuration Screen';
+	}
+
+	register_sidebar_widget(array('SponsorMe', 'widgets'), 'widget_SponsorMe');
+	register_widget_control(array('SponsorMe', 'widgets'), 'widget_SponsorMe_control', 300, 130);
+;
+}
+
+function SponsorMe_sidebar(){
+
+   docommon_SponsorMe_sidebar();
+}
+
+function docommon_SponsorMe_sidebar(){
+
+   global $wpdb;
+
+   $options = get_option('SponsorMe');
+   $title = $options['title'];
+   $targetdesc = $options['targetdesc'];
+   $targetamount = $options['targetamount'];
+   $currency = $options['currency'];
+   $paypal = $options['paypal'];
+   $pageID = $options['pageID'];
+
+   echo '<div align="center">';
+   echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
+   echo '<a href="'.get_bloginfo('url').'?page_id='.$pageID.'">Sponsor Me</a></div>';
+
+}
+
+
+//To replace the <!--SponsorMe-page--> with the blogroll links
+function SponsorMe_text($text) {
+	global $wpdb;
+    $table_name = $wpdb->prefix . "sponsorme";
+
+	//Only perform plugin functionality if post/page text has <!--SponsorMe-->
+	if (preg_match("|<!--SponsorMe-page-->|", $text)) {
+
+        // Stuff goes here
+        $SponsorMeDisplay = "";
+
+        $options = get_option('SponsorMe');
+        $title = $options['title'];
+		$targetdesc = $options['targetdesc'];
+		$targetamount = $options['targetamount'];
+		$currency = $options['currency'];
+		$paypal = $options['paypal'];
+
+        // Process if needed
+        if ($_POST["sponsorme_process"] == "yes") {
+           // Update database
+
+           $name = strip_tags(stripslashes($_POST['sponsorme_name']));
+           $email = strip_tags(stripslashes($_POST['sponsorme_email']));
+           $url = strip_tags(stripslashes($_POST['sponsorme_URL']));
+           $amount = strip_tags(stripslashes($_POST['sponsorme_amount']));
+           $comments = htmlspecialchars(strip_tags(stripslashes($_POST['sponsorme_comments'])), ENT_QUOTES);
+
+           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments` ,`verified`) VALUES (NULL, \''.$name.'\', \''.$email.'\', \''.$url.'\','.$amount.', \''.$comments.'\', \'N\');';
+           $wpdb->query($sql);
+
+	       $SponsorMeDisplay .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" name="myform">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="cmd" value="_xclick">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="business" value="'.$paypal.'">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="item_name" value="Sponsor Me">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="amount" value="'.$amount.'">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="shipping" value="0.00">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="no_shipping" value="0">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="no_note" value="1">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="currency_code" value="'.$currency.'">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="lc" value="GB">';
+	       $SponsorMeDisplay .= '<input type="hidden" name="bn" value="PP-BuyNowBF">';
+	       $SponsorMeDisplay .= '<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but02.gif" border="0" name="submit">';
+	       $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
+	       $SponsorMeDisplay .= '</form>';
+	       $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
+        }  else {
+
+           $SponsorMeDisplay .= '<div align="center"><img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph"><br>Powered by <a href="http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/">SponsorMe Plugin</a></div>';
+
+           $SponsorMeDisplay .= '<hr>';
+
+           $SponsorMeDisplay .= '<p>If you\'d like to help, you can fill in the form below to leave a donation.</p>';
+           $SponsorMeDisplay .= '<form name="sponsorme" method="POST">';
+           $SponsorMeDisplay .= '<table border=0>';
+           $SponsorMeDisplay .= '<tr><td>Name:</td><td><input name="sponsorme_name" type="text" length="50"></td></tr>';
+           $SponsorMeDisplay .= '<tr><td>Email:</td><td><input name="sponsorme_email" type="text" length="50"></td></tr>';
+           $SponsorMeDisplay .= '<tr><td>URL:</td><td><input name="sponsorme_URL" type="text" length="50"></td></tr>';
+           $SponsorMeDisplay .= '<tr><td>Amount:</td><td><input name="sponsorme_amount" type="text" length="50"></td></tr>';
+           $SponsorMeDisplay .= '<tr><td>Comment:</td><td><input name="sponsorme_comments" type="text" length="100"></td></tr>';
+           $SponsorMeDisplay .= '<tr><td colspan="2"><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
+           $SponsorMeDisplay .= '</table>';
+           $SponsorMeDisplay .= '</form>';
+
+           $SponsorMeDisplay .= '<hr>';
+
+           $SponsorMeDisplay .= '<p>Thanks to the following for their kind donations:</p>';
+
+           // prepare result
+	       $strSQL = "SELECT name, URL, amount,comments FROM $table_name WHERE verified = 'Y'";
+	       $rows = $wpdb->get_results ($strSQL);
+ 
+	       if (is_array($rows)):
+              $SponsorMeDisplay .= '<ul>';
+
+		      foreach ($rows as $row) { 
+                 $SponsorMeDisplay .= '<li>';
+                 if ($row->URL != '') $SponsorMeDisplay .= '<a href="'.$row->URL.'">';
+                 $SponsorMeDisplay .= $row->name;
+                 if ($row->URL != '') $SponsorMeDisplay .= '</a>';
+                 $SponsorMeDisplay .= ' - '.$row->amount.' - '.$row->comments.'</li>';
+              }
+              $SponsorMeDisplay .= '</ul>';
+           else:
+              $SponsorMeDisplay .= 'No sponsorships yet';
+           endif;
+
+           // check for pending payments
+	       $strSQL = "SELECT name, URL, amount FROM $table_name WHERE verified = 'N'";
+	       $rows2 = $wpdb->get_results ($strSQL);
+ 
+	       if (is_array($rows2)):
+              $SponsorMeDisplay .= '<hr>';
+              $SponsorMeDisplay .= '<p>Pending payments:</p>';
+
+              $SponsorMeDisplay .= '<ul>';
+		      foreach ($rows2 as $row) { 
+                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$row->amount.'</li>';
+              }
+              $SponsorMeDisplay .= '</ul>';
+           endif;
+        }
+
+		$text = preg_replace("|<!--SponsorMe-page-->|", $SponsorMeDisplay, $text);
+
+	}
+
+	return $text;
+} 
+
+
+function SponsorMe_options() {
+
+   global $wpdb;
+   $table_name = $wpdb->prefix . "sponsorme";
+
+   // check if anything needs verifying
+   if ( $_GET['action'] == 'verify') {
+      $sql = "UPDATE ".$table_name." SET verified = 'Y' WHERE id=".$_GET['id'];
+      $wpdb->query($sql);
+   }
+
+   // check if anything needs deleting
+   if ( $_GET['action'] == 'delete') {
+      $sql = "DELETE FROM ".$table_name." WHERE id=".$_GET['id'];
+      $wpdb->query($sql);
+   }
+
+   // Note: Options for this plugin include a "Title" setting which is only used by the widget
+   $options = get_option('SponsorMe');
+	
+   //set initial values if none exist
+   if ( !is_array($options) ) {
+      $options = array( 'title'=>'Sponsor Me', 'targetdesc'=>'My Target', 'targetamount'=>'100', 'currency'=>'GBP', 'paypal'=>'account@paypal.com', 'pageID'=>'0');
+   }
+
+   if ( $_POST['SM-submit'] ) {
+      $options['title'] = strip_tags(stripslashes($_POST['SM-title']));
+      $options['targetdesc'] = strip_tags(stripslashes($_POST['SM-targetdesc']));
+      $options['targetamount'] = strip_tags(stripslashes($_POST['SM-targetamount']));
+      $options['currency'] = strip_tags(stripslashes($_POST['SM-currency']));
+      $options['paypal'] = strip_tags(stripslashes($_POST['SM-paypal']));
+      $options['pageID'] = strip_tags(stripslashes($_POST['SM-pageID']));
+      update_option('SponsorMe', $options);
+   }
+
+   $title = htmlspecialchars($options['title'], ENT_QUOTES);
+   $targetdesc = htmlspecialchars($options['targetdesc'], ENT_QUOTES);
+   $targetamount = htmlspecialchars($options['targetamount'], ENT_QUOTES);
+   $currency = htmlspecialchars($options['currency'], ENT_QUOTES);
+   $paypal = htmlspecialchars($options['paypal'], ENT_QUOTES);
+   $pageID = htmlspecialchars($options['pageID'], ENT_QUOTES);
+	
+?>
+
+<div class="wrap"> 
+  <h2><?php _e('Sponsor Me Options') ?></h2> 
+  <form name="form1" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php">
+
+ 
+    <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Title:') ?></th> 
+        <td><input name="SM-title" type="text" id="SM-title" value="<?php echo $title; ?>" size="80" />
+		<br />
+        <?php _e('Enter the title to use') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Target:') ?></th> 
+        <td><input name="SM-targetdesc" type="text" id="SM-targetdesc" value="<?php echo $targetdesc; ?>" size="80" />
+        <br />
+        <?php _e('What is the item/target you are aiming for?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Target Amount:') ?></th> 
+        <td><input name="SM-targetamount" type="text" id="SM-targetamount" value="<?php echo $targetamount; ?>" size="80" />
+        <br />
+        <?php _e('What is the target amount you are trying to collect?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Currency:') ?></th> 
+        <td><input name="SM-currency" type="text" id="SM-currency" value="<?php echo $currency; ?>" size="80" />
+        <br />
+        <?php _e('What currency would you like to us?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('PayPal:') ?></th> 
+        <td><input name="SM-paypal" type="text" id="SM-paypal" value="<?php echo $paypal; ?>" size="80" />
+        <br />
+        <?php _e('What is your paypal account?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Page ID:') ?></th> 
+        <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" />
+        <br />
+        <?php _e('What is the Page ID of the page you have put the '.htmlspecialchars('<!--SponsorMe-page-->').' tag on') ?></td> 
+      </tr> 
+    </table>
+
+	<input type="hidden" id="-submit" name="SM-submit" value="1" />
+
+    <p class="submit">
+      <input type="submit" name="Submit" value="<?php _e('Update Options') ?> &raquo;" />
+    </p>
+  </form> 
+  <hr>
+
+	<fieldset class="options">
+	<legend>Donations</legend>
+	<?php
+		$strSQL = "SELECT * FROM $table_name ORDER BY id DESC";
+		$rows = $wpdb->get_results ($strSQL);
+	?>
+	<table class="widefat">
+       <thead>
+		<tr>
+			<th>Name</th>
+			<th>Email</th>
+			<th>URL</th>
+			<th>Amount</th>
+			<th>Comment</th>
+			<th>Verified</th>
+			<th>Action</th>
+		</tr>
+       </thead>
+	<?php if (is_array($rows)): ?>
+		<?php foreach ($rows as $row) { 
+             $style=" ";
+             if($intAlternate==1) $style=$style."alternate "; 
+             if($row->verified=='Y') $style=$style."active ";
+
+             ?>
+			<tr<?php if($style!=" "): ?> class="<?php echo $style ?>"<?php endif; ?>>
+				<td><?php print $row->name; ?></td>
+				<td><?php print $row->email; ?> </td>
+				<td><?php print $row->URL; ?> </td>
+				<td><?php print $row->amount; ?> </td>
+				<td><?php print $row->comments; ?> </td>
+				<td><?php print $row->verified; ?> </td>
+				<td>
+                    <?php if($row->verified=='N'): ?>
+                       <a href="javascript:if(confirm('Are you sure you want to verify ?')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=verify&amp;id=<?php echo $row->id ?>';" class="edit">Verify</a><br>
+                    <?php endif; ?>
+                    <a href="javascript:if(confirm('Are you sure you want to delete ? (once it\'s gone, it\'s gone!)')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=delete&amp;id=<?php echo $row->id ?>';" class="edit">Delete</a>
+                </td>
+			</tr>
+			<?php
+				if($intAlternate == 1):
+					$intAlternate=0;
+				else:
+					$intAlternate=1;
+				endif;
+			?>
+		<? } ?>
+	<?php else: ?>
+		<tr><td colspan="5">No donations</td></tr>
+	<?php endif; ?>
+	</table>
+	</fieldset>
+
+</div>
+
+<?php
+}
+
+
+function sponsorme_uninstall () {
+
+   // Cleanup routine. Not sure if we'll need this in the final build, But for now it makes experimenting
+   // with table structures much easier.
+
+//   global $wpdb;
+
+//   $table_name = $wpdb->prefix . "sponsorme";
+//   if($wpdb->get_var("show tables like '$table_name'") == $table_name) {
+//      $wpdb->query("DROP TABLE {$table_name}");
+//   }
+
+}
+
+
+
+function sponsorme_install () {
+   global $wpdb;
+   
+   $table_name = $wpdb->prefix . "sponsorme";
+   if($wpdb->get_var("show tables like '$table_name'") != $table_name) {
+     
+      $sql = "CREATE TABLE " . $table_name . " (
+	  id mediumint(9) NOT NULL AUTO_INCREMENT,
+	  name tinytext NOT NULL default '',
+	  email tinytext NOT NULL default '',
+	  URL tinytext NOT NULL default '',
+	  amount decimal(10,2) NOT NULL,
+	  comments tinytext NOT NULL default '',
+      verified enum('Y', 'N') DEFAULT 'N' NOT NULL,
+	  UNIQUE KEY id (id)
+	);";
+
+      require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
+      dbDelta($sql);
+
+      // Insert a test Record
+      $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments`  ,`verified`) VALUES (NULL, \'Owen\', \'owen@cutajar.net\', \'http://www.u-g-h.com\', 0, \'Good luck!\', \'Y\');';
+      $wpdb->query($sql);
+      
+   }
+}
+
+
+function SponsorMe_adminmenu(){
+   if (function_exists('add_management_page')) {
+	add_management_page('Sponsor Me Options', 'SponsorMe', 9, 'sponsorme.php', 'SponsorMe_options');
+   }
+}
+
+add_filter('the_content', 'SponsorMe_text', 2);
+add_action('admin_menu', 'SponsorMe_adminmenu',1);
+add_action('activate_'.plugin_basename(__FILE__), 'sponsorme_install');
+add_action('deactivate_'.plugin_basename(__FILE__), 'sponsorme_uninstall');
+add_action('widgets_init', 'widget_SponsorMe_init');
+?>
