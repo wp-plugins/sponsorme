@@ -3,14 +3,15 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.2
+Version: 0.2.1
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
 
 /* History:
   v0.1 - OwenC - Created base version
-  v0.5 - OwenC - Prepared for public release
+  v0.2 - OwenC - Prepared for public release
+  v0.2.1 - OwenC - Added options to change colour of graph
 */
 
 // cater for stand-alone calls
@@ -36,6 +37,8 @@ if (strstr($_SERVER['PHP_SELF'],SM_PLUGIN_EXTERNAL_PATH.SM_PLUGIN_NAME) && isset
    $currency = $options['currency'];
    $paypal = $options['paypal'];
    $pageID = $options['pageID'];
+   $backcol = $options['backcol'];
+   $barscol = $options['barscol'];
 
    include('postgraph.class.php'); 
 
@@ -50,7 +53,16 @@ if (strstr($_SERVER['PHP_SELF'],SM_PLUGIN_EXTERNAL_PATH.SM_PLUGIN_NAME) && isset
    $graph->setYNumberFormat('integer');
    $graph->setYTicks(10);
    $graph->setData($data);
-   $graph->setBackgroundColor(array(255,255,0));
+   if ($backcol != "") {
+      $graph->setBackgroundColor(html2rgb($backcol));
+   } else {
+      $graph->setBackgroundColor(array(255,255,0));
+   }
+   
+   if ($barscol != "") {
+      $graph->setBarsColor(html2rgb($barscol));
+   }
+      
    $graph->setTextColor(array(144,144,144));
    $graph->setXTextOrientation('horizontal');
 
@@ -60,6 +72,25 @@ if (strstr($_SERVER['PHP_SELF'],SM_PLUGIN_EXTERNAL_PATH.SM_PLUGIN_NAME) && isset
 
    exit;
 endif;
+
+function html2rgb($color)
+{
+    if ($color[0] == '#')
+        $color = substr($color, 1);
+
+    if (strlen($color) == 6)
+        list($r, $g, $b) = array($color[0].$color[1],
+                                 $color[2].$color[3],
+                                 $color[4].$color[5]);
+    elseif (strlen($color) == 3)
+        list($r, $g, $b) = array($color[0].$color[0], $color[1].$color[1], $color[2].$color[2]);
+    else
+        return false;
+
+    $r = hexdec($r); $g = hexdec($g); $b = hexdec($b);
+
+    return array($r, $g, $b);
+}
 
 function widget_SponsorMe_init() {
 
@@ -242,7 +273,7 @@ function SponsorMe_options() {
 	
    //set initial values if none exist
    if ( !is_array($options) ) {
-      $options = array( 'title'=>'Sponsor Me', 'targetdesc'=>'My Target', 'targetamount'=>'100', 'currency'=>'GBP', 'paypal'=>'account@paypal.com', 'pageID'=>'0');
+      $options = array( 'title'=>'Sponsor Me', 'targetdesc'=>'My Target', 'targetamount'=>'100', 'currency'=>'GBP', 'paypal'=>'account@paypal.com', 'pageID'=>'0','backcol'=>'#FFFFFF','barscol'=>'#121212');
    }
 
    if ( $_POST['SM-submit'] ) {
@@ -252,6 +283,8 @@ function SponsorMe_options() {
       $options['currency'] = strip_tags(stripslashes($_POST['SM-currency']));
       $options['paypal'] = strip_tags(stripslashes($_POST['SM-paypal']));
       $options['pageID'] = strip_tags(stripslashes($_POST['SM-pageID']));
+      $options['backcol'] = strip_tags(stripslashes($_POST['SM-backcol']));
+      $options['barscol'] = strip_tags(stripslashes($_POST['SM-barscol']));
       update_option('SponsorMe', $options);
    }
 
@@ -261,6 +294,8 @@ function SponsorMe_options() {
    $currency = htmlspecialchars($options['currency'], ENT_QUOTES);
    $paypal = htmlspecialchars($options['paypal'], ENT_QUOTES);
    $pageID = htmlspecialchars($options['pageID'], ENT_QUOTES);
+   $backcol = htmlspecialchars($options['backcol'], ENT_QUOTES);
+   $barscol = htmlspecialchars($options['barscol'], ENT_QUOTES);
 	
 ?>
 
@@ -305,6 +340,23 @@ function SponsorMe_options() {
         <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" />
         <br />
         <?php _e('What is the Page ID of the page you have put the '.htmlspecialchars('<!--SponsorMe-page-->').' tag on') ?></td> 
+      </tr> 
+    </table>
+    
+  <h2><?php _e('Colour Options') ?></h2>     
+
+    <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Background Colour:') ?></th> 
+        <td><input name="SM-backcol" type="text" id="SM-backcol" value="<?php echo $backcol; ?>" size="80" />
+		<br />
+        <?php _e('Enter the background colour to use (ex #FFFFFF)') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Bars Colour:') ?></th> 
+        <td><input name="SM-barscol" type="text" id="SM-barscol" value="<?php echo $barscol; ?>" size="80" />
+        <br />
+        <?php _e('Enter the bars colour to use (ex #121212)') ?></td> 
       </tr> 
     </table>
 
