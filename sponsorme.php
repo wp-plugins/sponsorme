@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.2.1
+Version: 0.2.2
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -12,6 +12,7 @@ Author URI: http://www.u-g-h.com
   v0.1 - OwenC - Created base version
   v0.2 - OwenC - Prepared for public release
   v0.2.1 - OwenC - Added options to change colour of graph
+  v0.2.2 - OwenC - Added option to display textual representation in sidebar (Request by RayGene)
 */
 
 // cater for stand-alone calls
@@ -132,11 +133,22 @@ function docommon_SponsorMe_sidebar(){
    $currency = $options['currency'];
    $paypal = $options['paypal'];
    $pageID = $options['pageID'];
+   $textwidget = $options['textwidget'];
 
    echo '<div align="center">';
-   echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
-   echo '<a href="'.get_bloginfo('url').'?page_id='.$pageID.'">Sponsor Me</a></div>';
-
+   if ($textwidget == "Yes") {
+   
+      global $wpdb;
+      $table_name = $wpdb->prefix . "sponsorme";
+      $strSQL = "SELECT SUM(amount) FROM $table_name WHERE verified <> 'N'";
+      $thistotal = $wpdb->get_var($strSQL); 
+   
+      echo "<p>I'm saving for my " . $targetdesc . " and have collected " . $currency . $thistotal . " out of the " . $currency . $targetamount . " I need.</p>";
+   
+   } else {
+      echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
+   }
+      echo '<a href="'.get_bloginfo('url').'?page_id='.$pageID.'">Sponsor Me</a></div>';
 }
 
 
@@ -273,7 +285,7 @@ function SponsorMe_options() {
 	
    //set initial values if none exist
    if ( !is_array($options) ) {
-      $options = array( 'title'=>'Sponsor Me', 'targetdesc'=>'My Target', 'targetamount'=>'100', 'currency'=>'GBP', 'paypal'=>'account@paypal.com', 'pageID'=>'0','backcol'=>'#FFFFFF','barscol'=>'#121212');
+      $options = array( 'title'=>'Sponsor Me', 'targetdesc'=>'My Target', 'targetamount'=>'100', 'currency'=>'GBP', 'paypal'=>'account@paypal.com', 'pageID'=>'0','backcol'=>'#FFFFFF','barscol'=>'#121212','textwidget'=>'');
    }
 
    if ( $_POST['SM-submit'] ) {
@@ -283,8 +295,10 @@ function SponsorMe_options() {
       $options['currency'] = strip_tags(stripslashes($_POST['SM-currency']));
       $options['paypal'] = strip_tags(stripslashes($_POST['SM-paypal']));
       $options['pageID'] = strip_tags(stripslashes($_POST['SM-pageID']));
+      $options['textwidget'] = strip_tags(stripslashes($_POST['textwidget']));
       $options['backcol'] = strip_tags(stripslashes($_POST['SM-backcol']));
       $options['barscol'] = strip_tags(stripslashes($_POST['SM-barscol']));
+      $options['textwidget'] = strip_tags(stripslashes($_POST['SM-textwidget']));
       update_option('SponsorMe', $options);
    }
 
@@ -296,80 +310,14 @@ function SponsorMe_options() {
    $pageID = htmlspecialchars($options['pageID'], ENT_QUOTES);
    $backcol = htmlspecialchars($options['backcol'], ENT_QUOTES);
    $barscol = htmlspecialchars($options['barscol'], ENT_QUOTES);
-	
+   $textwidget = htmlspecialchars($options['textwidget'], ENT_QUOTES);	
 ?>
 
 <div class="wrap"> 
-  <h2><?php _e('Sponsor Me Options') ?></h2> 
-  <form name="form1" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php">
 
- 
-    <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Title:') ?></th> 
-        <td><input name="SM-title" type="text" id="SM-title" value="<?php echo $title; ?>" size="80" />
-		<br />
-        <?php _e('Enter the title to use') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Target:') ?></th> 
-        <td><input name="SM-targetdesc" type="text" id="SM-targetdesc" value="<?php echo $targetdesc; ?>" size="80" />
-        <br />
-        <?php _e('What is the item/target you are aiming for?') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Target Amount:') ?></th> 
-        <td><input name="SM-targetamount" type="text" id="SM-targetamount" value="<?php echo $targetamount; ?>" size="80" />
-        <br />
-        <?php _e('What is the target amount you are trying to collect?') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Currency:') ?></th> 
-        <td><input name="SM-currency" type="text" id="SM-currency" value="<?php echo $currency; ?>" size="80" />
-        <br />
-        <?php _e('What currency would you like to us?') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('PayPal:') ?></th> 
-        <td><input name="SM-paypal" type="text" id="SM-paypal" value="<?php echo $paypal; ?>" size="80" />
-        <br />
-        <?php _e('What is your paypal account?') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Page ID:') ?></th> 
-        <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" />
-        <br />
-        <?php _e('What is the Page ID of the page you have put the '.htmlspecialchars('<!--SponsorMe-page-->').' tag on') ?></td> 
-      </tr> 
-    </table>
-    
-  <h2><?php _e('Colour Options') ?></h2>     
-
-    <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Background Colour:') ?></th> 
-        <td><input name="SM-backcol" type="text" id="SM-backcol" value="<?php echo $backcol; ?>" size="80" />
-		<br />
-        <?php _e('Enter the background colour to use (ex #FFFFFF)') ?></td> 
-      </tr> 
-      <tr valign="top"> 
-        <th scope="row"><?php _e('Bars Colour:') ?></th> 
-        <td><input name="SM-barscol" type="text" id="SM-barscol" value="<?php echo $barscol; ?>" size="80" />
-        <br />
-        <?php _e('Enter the bars colour to use (ex #121212)') ?></td> 
-      </tr> 
-    </table>
-
-	<input type="hidden" id="-submit" name="SM-submit" value="1" />
-
-    <p class="submit">
-      <input type="submit" name="Submit" value="<?php _e('Update Options') ?> &raquo;" />
-    </p>
-  </form> 
-  <hr>
-
+  <h2><?php _e('Donations') ?></h2> 
 	<fieldset class="options">
-	<legend>Donations</legend>
+	<legend></legend>
 	<?php
 		$strSQL = "SELECT * FROM $table_name ORDER BY id DESC";
 		$rows = $wpdb->get_results ($strSQL);
@@ -420,6 +368,84 @@ function SponsorMe_options() {
 	<?php endif; ?>
 	</table>
 	</fieldset>
+
+<hr>
+
+  <h2><?php _e('Sponsor Me Options') ?></h2> 
+  <form name="form1" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php">
+
+     <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Title:') ?></th> 
+        <td><input name="SM-title" type="text" id="SM-title" value="<?php echo $title; ?>" size="80" />
+		<br />
+        <?php _e('Enter the title to use') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Target:') ?></th> 
+        <td><input name="SM-targetdesc" type="text" id="SM-targetdesc" value="<?php echo $targetdesc; ?>" size="80" />
+        <br />
+        <?php _e('What is the item/target you are aiming for?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Target Amount:') ?></th> 
+        <td><input name="SM-targetamount" type="text" id="SM-targetamount" value="<?php echo $targetamount; ?>" size="80" />
+        <br />
+        <?php _e('What is the target amount you are trying to collect?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Currency:') ?></th> 
+        <td><input name="SM-currency" type="text" id="SM-currency" value="<?php echo $currency; ?>" size="80" />
+        <br />
+        <?php _e('What currency would you like to us?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('PayPal:') ?></th> 
+        <td><input name="SM-paypal" type="text" id="SM-paypal" value="<?php echo $paypal; ?>" size="80" />
+        <br />
+        <?php _e('What is your paypal account?') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Page ID:') ?></th> 
+        <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" />
+        <br />
+        <?php _e('What is the Page ID of the page you have put the '.htmlspecialchars('<!--SponsorMe-page-->').' tag on') ?></td> 
+      </tr> 
+    </table>
+    
+  <h2><?php _e('Presentation Options') ?></h2>     
+
+    <table width="100%" cellspacing="2" cellpadding="5" class="editform"> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Text Widget:') ?></th> 
+        <td>
+        <select id="SM-textwidget" name="SM-textwidget">
+                <option value="" <?php if ($textwidget=='') echo 'selected'; ?>>No, I prefer a graph</option>
+                <option value="Yes" <?php if ($textwidget=='Yes') echo 'selected'; ?>>Yes, I prefer text in my sidebar</option>
+         </select>
+        <br />
+        <?php _e('Select whether you prefer a graph in your sidebar or just text') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Background Colour:') ?></th> 
+        <td><input name="SM-backcol" type="text" id="SM-backcol" value="<?php echo $backcol; ?>" size="80" />
+		<br />
+        <?php _e('Enter the background colour to use (ex #FFFFFF)') ?></td> 
+      </tr> 
+      <tr valign="top"> 
+        <th scope="row"><?php _e('Bars Colour:') ?></th> 
+        <td><input name="SM-barscol" type="text" id="SM-barscol" value="<?php echo $barscol; ?>" size="80" />
+        <br />
+        <?php _e('Enter the bars colour to use (ex #121212)') ?></td> 
+      </tr> 
+    </table>
+
+	<input type="hidden" id="-submit" name="SM-submit" value="1" />
+
+    <p class="submit">
+      <input type="submit" name="Submit" value="<?php _e('Update Options') ?> &raquo;" />
+    </p>
+  </form> 
 
 </div>
 
