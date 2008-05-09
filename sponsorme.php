@@ -13,6 +13,7 @@ Author URI: http://www.u-g-h.com
   v0.2 - OwenC - Prepared for public release
   v0.2.1 - OwenC - Added options to change colour of graph
   v0.2.2 - OwenC - Added option to display textual representation in sidebar (Request by RayGene)
+  v0.2.3 - OwenC - Added ability for plugin to automatically discover the "page_id"
 */
 
 // cater for stand-alone calls
@@ -280,6 +281,11 @@ function SponsorMe_options() {
       $wpdb->query($sql);
    }
 
+   // check if we're looking for the ID
+   if ( $_GET['action'] == 'find') {
+			$foundID = $wpdb->get_var("SELECT ID FROM ".$wpdb->prefix."posts WHERE post_content LIKE '%--SponsorMe-page--%'");
+   }
+
    // Note: Options for this plugin include a "Title" setting which is only used by the widget
    $options = get_option('SponsorMe');
 	
@@ -311,6 +317,8 @@ function SponsorMe_options() {
    $backcol = htmlspecialchars($options['backcol'], ENT_QUOTES);
    $barscol = htmlspecialchars($options['barscol'], ENT_QUOTES);
    $textwidget = htmlspecialchars($options['textwidget'], ENT_QUOTES);	
+   
+   if ($foundID != '') $pageID = $foundID;
 ?>
 
 <div class="wrap"> 
@@ -407,7 +415,7 @@ function SponsorMe_options() {
       </tr> 
       <tr valign="top"> 
         <th scope="row"><?php _e('Page ID:') ?></th> 
-        <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" />
+        <td><input name="SM-pageID" type="text" id="SM-pageID" value="<?php echo $pageID; ?>" size="80" /><a href="<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=find">Find this for me</a>
         <br />
         <?php _e('What is the Page ID of the page you have put the '.htmlspecialchars('<!--SponsorMe-page-->').' tag on') ?></td> 
       </tr> 
