@@ -10,8 +10,13 @@ Plugin to run a sponsorship campaign that lets friends and family contribute to 
 
 == Description ==
 
-The SponsorMe plugin lets you organise your fund raising on your WordPress blog. It shows a graph of your target and how much money you have collected. It also lets users pledge an amount to you and sends them to PayPal to collect money directly from them.
-Most information at: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
+Do you have a charity website and are looking to raise some funds? Are you saving for a new computer and would like some help from family and friends? If so, SponsorMe can help you run your campaign directly from your blog. It allows you to show people what your target is, how much you have saved and how much is outstanding. And if they decide to contribute, SponsorMe will collect details of their pledge and allow them to make a PayPal payment straight into your account.
+
+The plugin includes an administration interface where you can see your pledges, verify them once you receive the funds or delete them if they prove to be void. It also allows you to change the colours of your graph as well as all the details about what you are looking for sponsorship for.
+
+THe plugin is still in development, so I'm adding new features almost every day. I look forward to hearing your comments and feedback, so if you would like to contribute, you can leave me a comment on my [Contact Page](http://www.u-g-h.com/index.php/contact/)
+
+Most information at: [Plugin Home Page](http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/)
 
 == Installation ==
 
@@ -24,7 +29,7 @@ Most information at: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-
 
 4. Create a new page with some information about your sponsorship campaign. Add this tag to your page: <!--SponsorMe-page-->
 
-5. Configure the plugin from the SponsorMe menu in your Administration Section. Specify the currency you want to sell in, your Paypal address, your target amount and the Page ID of the page you created in step 4.
+5. Configure the plugin from the SponsorMe menu in your Administration Section. Specify the currency you want to sell in, your Paypal address, your target amount and the Page ID of the page you created in step 4. You can now click a link to ask the plugin to search for this ID for you
 
 6. Wait for pledges to come in!
 
