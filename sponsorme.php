@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.2.2
+Version: 0.3
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -11,9 +11,10 @@ Author URI: http://www.u-g-h.com
 /* History:
   v0.1 - OwenC - Created base version
   v0.2 - OwenC - Prepared for public release
-  v0.2.1 - OwenC - Added options to change colour of graph
-  v0.2.2 - OwenC - Added option to display textual representation in sidebar (Request by RayGene)
-  v0.2.3 - OwenC - Added ability for plugin to automatically discover the "page_id"
+  v0.3 - OwenC - Added external styling ability (and added a style)
+  v0.3.1 - OwenC - Prettied up text widget and added permalink
+  
+  Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
 
 // cater for stand-alone calls
@@ -144,12 +145,12 @@ function docommon_SponsorMe_sidebar(){
       $strSQL = "SELECT SUM(amount) FROM $table_name WHERE verified <> 'N'";
       $thistotal = $wpdb->get_var($strSQL); 
    
-      echo "<p>I'm saving for my " . $targetdesc . " and have collected " . $currency . $thistotal . " out of the " . $currency . $targetamount . " I need.</p>";
+      echo "<p><b>Please Donate to<br />" . $targetdesc . "<br /><br />Target amount: " . $currency . $targetamount . "<br />Total Donations: " . $currency . $thistotal . "<br /><br />Thank you for your support!</b></p>";
    
    } else {
       echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
    }
-      echo '<a href="'.get_bloginfo('url').'?page_id='.$pageID.'">Sponsor Me</a></div>';
+      echo '<a href="'.get_permalink($pageID).'">Sponsor Me</a></div>';
 }
 
 
@@ -199,34 +200,38 @@ function SponsorMe_text($text) {
 	       $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
 	       $SponsorMeDisplay .= '</form>';
 	       $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
-        }  else {
+        }  
 
-           $SponsorMeDisplay .= '<div align="center"><img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph"><br>Powered by <a href="http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/">SponsorMe Plugin</a></div>';
+        $SponsorMeDisplay .= '<div align="center"><img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph"><br>Powered by <a href="http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/">SponsorMe Plugin</a></div>';
 
-           $SponsorMeDisplay .= '<hr>';
+        $SponsorMeDisplay .= '<hr>';
 
-           $SponsorMeDisplay .= '<p>If you\'d like to help, you can fill in the form below to leave a donation.</p>';
-           $SponsorMeDisplay .= '<form name="sponsorme" method="POST">';
-           $SponsorMeDisplay .= '<table border=0>';
-           $SponsorMeDisplay .= '<tr><td>Name:</td><td><input name="sponsorme_name" type="text" length="50"></td></tr>';
-           $SponsorMeDisplay .= '<tr><td>Email:</td><td><input name="sponsorme_email" type="text" length="50"></td></tr>';
-           $SponsorMeDisplay .= '<tr><td>URL:</td><td><input name="sponsorme_URL" type="text" length="50"></td></tr>';
-           $SponsorMeDisplay .= '<tr><td>Amount:</td><td><input name="sponsorme_amount" type="text" length="50"></td></tr>';
-           $SponsorMeDisplay .= '<tr><td>Comment:</td><td><input name="sponsorme_comments" type="text" length="100"></td></tr>';
-           $SponsorMeDisplay .= '<tr><td colspan="2"><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
-           $SponsorMeDisplay .= '</table>';
-           $SponsorMeDisplay .= '</form>';
 
-           $SponsorMeDisplay .= '<hr>';
+        $SponsorMeDisplay .= '<p>If you\'d like to help, you can fill in the form below to leave a donation.</p>';
+        $SponsorMeDisplay .= '<form class="cmxform" name="sponsorme" method="POST">';
+        $SponsorMeDisplay .= '<fieldset>';
+        $SponsorMeDisplay .= '<legend>Pledge Details</legend>';
+        $SponsorMeDisplay .= '<table><tr><td><label for "sponsorme_name">Name:</label></td><td><input name="sponsorme_name" id="sponsorme_name" /></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_email">Email</label></td><td><input name="sponsorme_email" id="sponsorme_email" /></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_URL">URL</label></td><td><input name="sponsorme_URL" id="sponsorme_URL" /></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_amount">Amount ('.$currency.')</label></td><td><input name="sponsorme_amount" id="sponsorme_amount" /></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_comment">Comment</label></td><td><textarea name="sponsorme_comments" id="sponsorme_comments" rows="5" cols="40"></textarea></td></tr>';
+        $SponsorMeDisplay .= '<tr><td colspan=2><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
+        $SponsorMeDisplay .= '</table>';        
+        $SponsorMeDisplay .= '</fieldset>';
+        $SponsorMeDisplay .= '</form>';
+        $SponsorMeDisplay .= '</div>';
 
-           $SponsorMeDisplay .= '<p>Thanks to the following for their kind donations:</p>';
+        $SponsorMeDisplay .= '<hr>';
 
-           // prepare result
-	       $strSQL = "SELECT name, URL, amount,comments FROM $table_name WHERE verified = 'Y'";
-	       $rows = $wpdb->get_results ($strSQL);
+        $SponsorMeDisplay .= '<p>Thanks to the following for their kind donations:</p>';
+
+        // prepare result
+	      $strSQL = "SELECT name, URL, amount,comments FROM $table_name WHERE verified = 'Y'";
+	      $rows = $wpdb->get_results ($strSQL);
  
-	       if (is_array($rows)):
-              $SponsorMeDisplay .= '<ul>';
+	      if (is_array($rows)):
+        $SponsorMeDisplay .= '<ul>';
 
 		      foreach ($rows as $row) { 
                  $SponsorMeDisplay .= '<li>';
@@ -240,21 +245,21 @@ function SponsorMe_text($text) {
               $SponsorMeDisplay .= 'No sponsorships yet';
            endif;
 
-           // check for pending payments
-	       $strSQL = "SELECT name, URL, amount FROM $table_name WHERE verified = 'N'";
-	       $rows2 = $wpdb->get_results ($strSQL);
+          // check for pending payments
+	      $strSQL = "SELECT name, URL, amount FROM $table_name WHERE verified = 'N'";
+	      $rows2 = $wpdb->get_results ($strSQL);
  
-	       if (is_array($rows2)):
-              $SponsorMeDisplay .= '<hr>';
-              $SponsorMeDisplay .= '<p>Pending payments:</p>';
+	      if (is_array($rows2)):
+            $SponsorMeDisplay .= '<hr>';
+            $SponsorMeDisplay .= '<p>Pending payments:</p>';
 
-              $SponsorMeDisplay .= '<ul>';
-		      foreach ($rows2 as $row) { 
+            $SponsorMeDisplay .= '<ul>';
+		        foreach ($rows2 as $row) { 
                 $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$row->amount.'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
-           endif;
-        }
+         endif;
+       
 
 		$text = preg_replace("|<!--SponsorMe-page-->|", $SponsorMeDisplay, $text);
 
@@ -504,6 +509,9 @@ function sponsorme_install () {
    }
 }
 
+function wp_sponsorme_header() {
+     echo '<link type="text/css" rel="stylesheet" href="' . get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . 'style/style.css" />' . "\n\n";
+}    
 
 function SponsorMe_adminmenu(){
    if (function_exists('add_management_page')) {
@@ -511,6 +519,7 @@ function SponsorMe_adminmenu(){
    }
 }
 
+add_action('wp_head', 'wp_sponsorme_header');
 add_filter('the_content', 'SponsorMe_text', 2);
 add_action('admin_menu', 'SponsorMe_adminmenu',1);
 add_action('activate_'.plugin_basename(__FILE__), 'sponsorme_install');

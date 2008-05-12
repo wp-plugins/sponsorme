@@ -1,0 +1,17 @@
+<style type="text/css">
+  form.cmxform {	width: 370px;	font-size: 1.1em;	color: #333;	}
+  form.cmxform legend { padding-left: 0; }
+  form.cmxform legend,
+  form.cmxform label { color: #333; float: left;}
+  form.cmxform fieldset {	border: none;	border-top: 1px solid #C9DCA6;	background: url(cmxform-fieldset.gif) left bottom repeat-x;	}
+  form.cmxform fieldset fieldset { background: none; }
+  form.cmxform fieldset li {	padding: 5px 10px 7px;	background: url(cmxform-divider.gif) left bottom repeat-x;	}
+
+  form.cmxform fieldset    { margin-bottom: 10px; }
+  form.cmxform legend      { padding: 0 2px;  font-weight: bold; }
+  form.cmxform label       { display: inline-block;  line-height: 1.8;  vertical-align: top; }
+  form.cmxform fieldset ol { margin: 0;  padding: 0; }
+  form.cmxform fieldset li { list-style: none;  padding: 5px;  margin: 0; }
+  form.cmxform em          { font-weight: bold;  font-style: normal;  color: #f00; }
+  form.cmxform label       {  width: 120px; /* Width of labels */ }
+</style>
