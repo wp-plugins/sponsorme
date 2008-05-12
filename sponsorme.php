@@ -13,6 +13,7 @@ Author URI: http://www.u-g-h.com
   v0.2 - OwenC - Prepared for public release
   v0.3 - OwenC - Added external styling ability (and added a style)
   v0.3.1 - OwenC - Prettied up text widget and added permalink
+  v0.3.2 - OwenC - Bug fix (extra div)
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -220,7 +221,6 @@ function SponsorMe_text($text) {
         $SponsorMeDisplay .= '</table>';        
         $SponsorMeDisplay .= '</fieldset>';
         $SponsorMeDisplay .= '</form>';
-        $SponsorMeDisplay .= '</div>';
 
         $SponsorMeDisplay .= '<hr>';
 
