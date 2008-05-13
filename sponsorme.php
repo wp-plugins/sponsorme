@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.3.3
+Version: 0.3.4
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -15,6 +15,7 @@ Author URI: http://www.u-g-h.com
   v0.3.1 - OwenC - Prettied up text widget and added permalink
   v0.3.2 - OwenC - Bug fix (extra div)
   v0.3.3 - OwenC - Added Widget title
+  v0.3.4 - OwenC - Added amount outstanding to text widget
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -159,7 +160,7 @@ function docommon_SponsorMe_sidebar(){
       $strSQL = "SELECT SUM(amount) FROM $table_name WHERE verified <> 'N'";
       $thistotal = $wpdb->get_var($strSQL); 
    
-      echo "<p><b>Please Donate to<br />" . $targetdesc . "<br /><br />Target amount: " . $currency . $targetamount . "<br />Total Donations: " . $currency . $thistotal . "<br /><br />Thank you for your support!</b></p>";
+      echo "<p><b>Please Donate to<br />" . $targetdesc . "<br /><br />Target amount: " . $currency . $targetamount . "<br />Total Donations: " . $currency . $thistotal . "<br />Amount Needed: " . $currency . ($targetamount-$thistotal) . "<br /><br />Thank you for your support!</b></p>";
    
    } else {
       echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
