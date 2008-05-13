@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.3.2
+Version: 0.3.3
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -14,6 +14,7 @@ Author URI: http://www.u-g-h.com
   v0.3 - OwenC - Added external styling ability (and added a style)
   v0.3.1 - OwenC - Prettied up text widget and added permalink
   v0.3.2 - OwenC - Bug fix (extra div)
+  v0.3.3 - OwenC - Added Widget title
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -104,15 +105,27 @@ function widget_SponsorMe_init() {
 	function widget_SponsorMe($args) {
 
 		extract($args);
+    $options = get_option('SponsorMe');
+   	$title = $options['widget_title'];
 
-		echo $before_widget;
+		echo $before_widget . $before_title . $title . $after_title;
 		docommon_SponsorMe_sidebar();
 		echo $after_widget;
 	}
 	
 	function widget_SponsorMe_control() {
 				
-		echo 'Please configure the widget from the SponsorMe Configuration Screen';
+   $options = get_option('SponsorMe');
+   
+ 		if ( $_POST['sponsorme-submit'] ) {               
+            // Change sidebar title
+			$options['widget_title'] = strip_tags(stripslashes($_POST['sponsorme-widget_title']));
+			update_option('SponsorMe', $options);
+    }
+   	$widget_title = htmlspecialchars($options['widget_title'], ENT_QUOTES);
+   	echo '<p style="text-align:right;"><label for="sponsorme-widget_title">' . __('Widget Title:') . ' <input style="width: 200px;" id="sponsorme-widget_title" name="sponsorme-widget_title" type="text" value="'.$widget_title.'" /></label></p>';
+		echo 'Please configure the other settings for the widget from the SponsorMe Configuration Screen';
+		echo '<input type="hidden" id="sponsorme-submit" name="sponsorme-submit" value="1" />';
 	}
 
 	register_sidebar_widget(array('SponsorMe', 'widgets'), 'widget_SponsorMe');
@@ -151,7 +164,7 @@ function docommon_SponsorMe_sidebar(){
    } else {
       echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
    }
-      echo '<a href="'.get_permalink($pageID).'">Sponsor Me</a></div>';
+      echo '<a href="'.get_permalink($pageID).'">Click to Donate</a></div>';
 }
 
 
@@ -168,10 +181,10 @@ function SponsorMe_text($text) {
 
         $options = get_option('SponsorMe');
         $title = $options['title'];
-		$targetdesc = $options['targetdesc'];
-		$targetamount = $options['targetamount'];
-		$currency = $options['currency'];
-		$paypal = $options['paypal'];
+		    $targetdesc = $options['targetdesc'];
+		    $targetamount = $options['targetamount'];
+		    $currency = $options['currency'];
+		    $paypal = $options['paypal'];
 
         // Process if needed
         if ($_POST["sponsorme_process"] == "yes") {
