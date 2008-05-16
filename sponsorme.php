@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.3.4
+Version: 0.4.1
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -11,11 +11,9 @@ Author URI: http://www.u-g-h.com
 /* History:
   v0.1 - OwenC - Created base version
   v0.2 - OwenC - Prepared for public release
-  v0.3 - OwenC - Added external styling ability (and added a style)
-  v0.3.1 - OwenC - Prettied up text widget and added permalink
-  v0.3.2 - OwenC - Bug fix (extra div)
-  v0.3.3 - OwenC - Added Widget title
-  v0.3.4 - OwenC - Added amount outstanding to text widget
+  v0.3 - OwenC - Added external styling ability (and added a style) and other cosmetic fixes
+  v0.4 - OwenC - Added ability to accept non-PayPal pledges
+  v0.4.1 - OwenC - Missing </div> bug fix
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -165,7 +163,7 @@ function docommon_SponsorMe_sidebar(){
    } else {
       echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
    }
-      echo '<a href="'.get_permalink($pageID).'">Click to Donate</a></div>';
+   echo '<a href="'.get_permalink($pageID).'">Click to Donate</a></div>';
 }
 
 
@@ -285,12 +283,21 @@ function SponsorMe_text($text) {
 
 function SponsorMe_options() {
 
+   // make sure table is always current
+   sponsorme_install();
+
    global $wpdb;
    $table_name = $wpdb->prefix . "sponsorme";
 
    // check if anything needs verifying
    if ( $_GET['action'] == 'verify') {
       $sql = "UPDATE ".$table_name." SET verified = 'Y' WHERE id=".$_GET['id'];
+      $wpdb->query($sql);
+   }
+
+   // check if anything needs clearing
+   if ( $_GET['action'] == 'contact') {
+      $sql = "UPDATE ".$table_name." SET needcontact = 'N' WHERE id=".$_GET['id'];
       $wpdb->query($sql);
    }
 
@@ -358,6 +365,7 @@ function SponsorMe_options() {
 			<th>Amount</th>
 			<th>Comment</th>
 			<th>Verified</th>
+			<th>Need Contact</th>
 			<th>Action</th>
 		</tr>
        </thead>
@@ -375,12 +383,16 @@ function SponsorMe_options() {
 				<td><?php print $row->amount; ?> </td>
 				<td><?php print $row->comments; ?> </td>
 				<td><?php print $row->verified; ?> </td>
+			  <td><?php print $row->needcontact; ?> </td>
 				<td>
-                    <?php if($row->verified=='N'): ?>
-                       <a href="javascript:if(confirm('Are you sure you want to verify ?')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=verify&amp;id=<?php echo $row->id ?>';" class="edit">Verify</a><br>
-                    <?php endif; ?>
-                    <a href="javascript:if(confirm('Are you sure you want to delete ? (once it\'s gone, it\'s gone!)')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=delete&amp;id=<?php echo $row->id ?>';" class="edit">Delete</a>
-                </td>
+            <?php if($row->needcontact=='Y'): ?>
+               <a href="javascript:if(confirm('Have you contacted this individual ?')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=contact&amp;id=<?php echo $row->id ?>';" class="edit">Contacted</a><br>
+            <?php endif; ?>
+            <?php if($row->verified=='N'): ?>
+               <a href="javascript:if(confirm('Are you sure you want to verify ?')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=verify&amp;id=<?php echo $row->id ?>';" class="edit">Verify</a><br>
+            <?php endif; ?>
+            <a href="javascript:if(confirm('Are you sure you want to delete ? (once it\'s gone, it\'s gone!)')==true) location.href='<?php echo $_SERVER['PHP_SELF']; ?>?page=sponsorme.php&amp;action=delete&amp;id=<?php echo $row->id ?>';" class="edit">Delete</a>
+        </td>
 			</tr>
 			<?php
 				if($intAlternate == 1):
@@ -395,7 +407,7 @@ function SponsorMe_options() {
 	<?php endif; ?>
 	</table>
 	</fieldset>
-
+(People who don't want to pay by PayPal will be marked as "Need Contact" above. Contact these by email and then click "Contacted" to clear the flag)
 <hr>
 
   <h2><?php _e('Sponsor Me Options') ?></h2> 
@@ -498,28 +510,40 @@ function sponsorme_uninstall () {
 
 function sponsorme_install () {
    global $wpdb;
+
+   $wpa_db_version = "1.1";
    
-   $table_name = $wpdb->prefix . "sponsorme";
-   if($wpdb->get_var("show tables like '$table_name'") != $table_name) {
-     
-      $sql = "CREATE TABLE " . $table_name . " (
-	  id mediumint(9) NOT NULL AUTO_INCREMENT,
-	  name tinytext NOT NULL default '',
-	  email tinytext NOT NULL default '',
-	  URL tinytext NOT NULL default '',
-	  amount decimal(10,2) NOT NULL,
-	  comments tinytext NOT NULL default '',
-      verified enum('Y', 'N') DEFAULT 'N' NOT NULL,
-	  UNIQUE KEY id (id)
-	);";
-
-      require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
-      dbDelta($sql);
-
-      // Insert a test Record
-      $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments`  ,`verified`) VALUES (NULL, \'Owen\', \'owen@cutajar.net\', \'http://www.u-g-h.com\', 0, \'Good luck!\', \'Y\');';
-      $wpdb->query($sql);
+   $installed_ver = get_option("sponsorme_db_version");
       
+   if ($installed_ver != $wpa_db_version) {
+   
+      $table_name = $wpdb->prefix . "sponsorme";
+      if($wpdb->get_var("show tables like '$table_name'") != $table_name) {
+     
+         $sql = "CREATE TABLE " . $table_name . " (
+	        id mediumint(9) NOT NULL AUTO_INCREMENT,
+	        name tinytext NOT NULL default '',
+	        email tinytext NOT NULL default '',
+	        URL tinytext NOT NULL default '',
+	        amount decimal(10,2) NOT NULL,
+	        comments tinytext NOT NULL default '',
+          verified enum('Y', 'N') DEFAULT 'N' NOT NULL,
+          needcontact enum('Y', 'N') DEFAULT 'N' NOT NULL,
+	        UNIQUE KEY id (id)
+	       );";
+
+        require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
+        dbDelta($sql);
+
+        update_option("sponsorme_db_version", $wpa_db_version);
+
+        // Insert a test Record if table is blank
+    
+        if($wpdb->get_var("select count(*) from '$table_name'") == 0) {    
+           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments`  ,`verified`) VALUES (NULL, \'Owen\', \'owen@cutajar.net\', \'http://www.u-g-h.com\', 0, \'Good luck!\', \'Y\');';
+           $wpdb->query($sql);
+        }
+      }
    }
 }
 
