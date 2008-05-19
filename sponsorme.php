@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.4.1
+Version: 0.5
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -13,7 +13,7 @@ Author URI: http://www.u-g-h.com
   v0.2 - OwenC - Prepared for public release
   v0.3 - OwenC - Added external styling ability (and added a style) and other cosmetic fixes
   v0.4 - OwenC - Added ability to accept non-PayPal pledges
-  v0.4.1 - OwenC - Missing </div> bug fix
+  v0.5 - OwenC - Integrated non-paypal pledges to front-end
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -26,6 +26,8 @@ if (!function_exists('get_option'))
 define('SM_PLUGIN_EXTERNAL_PATH', '/wp-content/plugins/sponsorme/');
 define('SM_PLUGIN_NAME', 'sponsorme.php');
 define('SM_PLUGIN_PATH', 'sponsorme/sponsorme.php');
+
+$sponsorme_db_version = "1.1";
 
 if (strstr($_SERVER['PHP_SELF'],SM_PLUGIN_EXTERNAL_PATH.SM_PLUGIN_NAME) && isset($_GET['graph'])) :
 
@@ -194,25 +196,32 @@ function SponsorMe_text($text) {
            $url = strip_tags(stripslashes($_POST['sponsorme_URL']));
            $amount = strip_tags(stripslashes($_POST['sponsorme_amount']));
            $comments = htmlspecialchars(strip_tags(stripslashes($_POST['sponsorme_comments'])), ENT_QUOTES);
+           $method = strip_tags(stripslashes($_POST['sponsorme_method']));
+           
+           if ($method == "cheque") { $needcontact = "Y"; } else { $needcontact = "N"; }
 
-           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments` ,`verified`) VALUES (NULL, \''.$name.'\', \''.$email.'\', \''.$url.'\','.$amount.', \''.$comments.'\', \'N\');';
+           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments` ,`verified`, `needcontact`) VALUES (NULL, \''.$name.'\', \''.$email.'\', \''.$url.'\','.$amount.', \''.$comments.'\', \'N\', \''.$needcontact.'\');';
            $wpdb->query($sql);
 
-	       $SponsorMeDisplay .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" name="myform">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="cmd" value="_xclick">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="business" value="'.$paypal.'">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="item_name" value="Sponsor Me">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="amount" value="'.$amount.'">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="shipping" value="0.00">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="no_shipping" value="0">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="no_note" value="1">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="currency_code" value="'.$currency.'">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="lc" value="GB">';
-	       $SponsorMeDisplay .= '<input type="hidden" name="bn" value="PP-BuyNowBF">';
-	       $SponsorMeDisplay .= '<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but02.gif" border="0" name="submit">';
-	       $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
-	       $SponsorMeDisplay .= '</form>';
-	       $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
+           if ($method == "paypal") {
+            $SponsorMeDisplay .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" name="myform">';
+            $SponsorMeDisplay .= '<input type="hidden" name="cmd" value="_xclick">';
+            $SponsorMeDisplay .= '<input type="hidden" name="business" value="'.$paypal.'">';
+            $SponsorMeDisplay .= '<input type="hidden" name="item_name" value="Sponsor Me">';
+            $SponsorMeDisplay .= '<input type="hidden" name="amount" value="'.$amount.'">';
+            $SponsorMeDisplay .= '<input type="hidden" name="shipping" value="0.00">';
+            $SponsorMeDisplay .= '<input type="hidden" name="no_shipping" value="0">';
+            $SponsorMeDisplay .= '<input type="hidden" name="no_note" value="1">';
+            $SponsorMeDisplay .= '<input type="hidden" name="currency_code" value="'.$currency.'">';
+            $SponsorMeDisplay .= '<input type="hidden" name="lc" value="GB">';
+            $SponsorMeDisplay .= '<input type="hidden" name="bn" value="PP-BuyNowBF">';
+            $SponsorMeDisplay .= '<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but02.gif" border="0" name="submit">';
+            $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
+            $SponsorMeDisplay .= '</form>';
+            $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
+           } else {
+            $SponsorMeDisplay .= '<div align="center"><font size="+1">Thank you for your pledge. You will be contacted shortlye with details about where to send the cheque. Thank you once again for your generosity.</font></div>';           
+           }
         }  
 
         $SponsorMeDisplay .= '<div align="center"><img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph"><br>Powered by <a href="http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/">SponsorMe Plugin</a></div>';
@@ -229,7 +238,8 @@ function SponsorMe_text($text) {
         $SponsorMeDisplay .= '<tr><td><label for "sponsorme_URL">URL</label></td><td><input name="sponsorme_URL" id="sponsorme_URL" /></td></tr>';
         $SponsorMeDisplay .= '<tr><td><label for "sponsorme_amount">Amount ('.$currency.')</label></td><td><input name="sponsorme_amount" id="sponsorme_amount" /></td></tr>';
         $SponsorMeDisplay .= '<tr><td><label for "sponsorme_comment">Comment</label></td><td><textarea name="sponsorme_comments" id="sponsorme_comments" rows="5" cols="40"></textarea></td></tr>';
-        $SponsorMeDisplay .= '<tr><td colspan=2><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_method">Method</label></td><td><select name="sponsorme_method"><option value="paypal">PayPal</option><option value="cheque">Cheque</option></select></td></tr>';
+        $SponsorMeDisplay .= '<tr><td colspan="2" align="center"><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
         $SponsorMeDisplay .= '</table>';        
         $SponsorMeDisplay .= '</fieldset>';
         $SponsorMeDisplay .= '</form>';
@@ -378,7 +388,7 @@ function SponsorMe_options() {
              ?>
 			<tr<?php if($style!=" "): ?> class="<?php echo $style ?>"<?php endif; ?>>
 				<td><?php print $row->name; ?></td>
-				<td><?php print $row->email; ?> </td>
+				<td><?php print "<a href='mailto:".$row->email."'>".$row->email."</a>" ?> </td>
 				<td><?php print $row->URL; ?> </td>
 				<td><?php print $row->amount; ?> </td>
 				<td><?php print $row->comments; ?> </td>
@@ -510,39 +520,42 @@ function sponsorme_uninstall () {
 
 function sponsorme_install () {
    global $wpdb;
-
-   $wpa_db_version = "1.1";
+   global $sponsorme_db_version;
    
    $installed_ver = get_option("sponsorme_db_version");
       
-   if ($installed_ver != $wpa_db_version) {
+   if ($installed_ver != $sponsorme_db_version) {
    
       $table_name = $wpdb->prefix . "sponsorme";
-      if($wpdb->get_var("show tables like '$table_name'") != $table_name) {
      
-         $sql = "CREATE TABLE " . $table_name . " (
-	        id mediumint(9) NOT NULL AUTO_INCREMENT,
-	        name tinytext NOT NULL default '',
-	        email tinytext NOT NULL default '',
-	        URL tinytext NOT NULL default '',
-	        amount decimal(10,2) NOT NULL,
-	        comments tinytext NOT NULL default '',
-          verified enum('Y', 'N') DEFAULT 'N' NOT NULL,
-          needcontact enum('Y', 'N') DEFAULT 'N' NOT NULL,
-	        UNIQUE KEY id (id)
-	       );";
+      $sql = "CREATE TABLE " . $table_name . " (
+      id mediumint(9) NOT NULL AUTO_INCREMENT,
+      name tinytext NOT NULL default '',
+      email tinytext NOT NULL default '',
+      URL tinytext NOT NULL default '',
+      amount decimal(10,2) NOT NULL,
+      comments tinytext NOT NULL default '',
+      verified enum('Y', 'N') DEFAULT 'N' NOT NULL,
+      needcontact enum('Y', 'N'),
+      UNIQUE KEY id (id)
+      );";
 
-        require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
-        dbDelta($sql);
+      if ($wp_version >= '2.3') {
+         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+      } else {
+         require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
+      }
+      dbDelta($sql);
 
-        update_option("sponsorme_db_version", $wpa_db_version);
+      update_option("sponsorme_db_version", $wpa_db_version);
 
-        // Insert a test Record if table is blank
+      // Insert a test Record if table is blank
     
-        if($wpdb->get_var("select count(*) from '$table_name'") == 0) {    
-           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments`  ,`verified`) VALUES (NULL, \'Owen\', \'owen@cutajar.net\', \'http://www.u-g-h.com\', 0, \'Good luck!\', \'Y\');';
-           $wpdb->query($sql);
-        }
+      $record_count = $wpdb->get_var("select count(*) from ".$table_name);
+      
+      if($record_count == 0) {    
+         $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments`  ,`verified`) VALUES (NULL, \'Owen\', \'owen@cutajar.net\', \'http://www.u-g-h.com\', 0, \'Good luck!\', \'Y\');';
+         $wpdb->query($sql);
       }
    }
 }

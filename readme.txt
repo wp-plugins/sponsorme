@@ -14,6 +14,8 @@ Do you have a charity website and are looking to raise some funds? Are you savin
 
 The plugin includes an administration interface where you can see your pledges, verify them once you receive the funds or delete them if they prove to be void. It also allows you to change the colours of your graph as well as all the details about what you are looking for sponsorship for.
 
+**New Feature** You can now accept pledges from users who do not have PayPal. If the user selects the "Cheque" option, you will need to contact them individually to arrange off-line sponsorship. The admin interface lets you keep track of people you need to contact and payments that need verification.
+
 THe plugin is still in development, so I'm adding new features almost every day. I look forward to hearing your comments and feedback, so if you would like to contribute, you can leave me a comment on my [Contact Page](http://www.u-g-h.com/index.php/contact/)
 
 Most information at: [Plugin Home Page](http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/)
