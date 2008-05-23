@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.5
+Version: 0.5.1
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -14,6 +14,7 @@ Author URI: http://www.u-g-h.com
   v0.3 - OwenC - Added external styling ability (and added a style) and other cosmetic fixes
   v0.4 - OwenC - Added ability to accept non-PayPal pledges
   v0.5 - OwenC - Integrated non-paypal pledges to front-end
+  v0.5.1 - OwenC - Added some validation to inputs and currency formatting
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -160,7 +161,7 @@ function docommon_SponsorMe_sidebar(){
       $strSQL = "SELECT SUM(amount) FROM $table_name WHERE verified <> 'N'";
       $thistotal = $wpdb->get_var($strSQL); 
    
-      echo "<p><b>Please Donate to<br />" . $targetdesc . "<br /><br />Target amount: " . $currency . $targetamount . "<br />Total Donations: " . $currency . $thistotal . "<br />Amount Needed: " . $currency . ($targetamount-$thistotal) . "<br /><br />Thank you for your support!</b></p>";
+      echo "<p><b>Please Donate to<br />" . $targetdesc . "<br /><br />Target amount: " . $currency . number_format($targetamount, 2, '.', ',') . "<br />Total Donations: " . $currency . number_format($thistotal, 2, '.', ',') . "<br />Amount Needed: " . $currency . number_format(($targetamount-$thistotal), 2, '.', ',') . "<br /><br />Thank you for your support!</b></p>";
    
    } else {
       echo '<img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph&sidebar">';
@@ -198,32 +199,44 @@ function SponsorMe_text($text) {
            $comments = htmlspecialchars(strip_tags(stripslashes($_POST['sponsorme_comments'])), ENT_QUOTES);
            $method = strip_tags(stripslashes($_POST['sponsorme_method']));
            
-           if ($method == "cheque") { $needcontact = "Y"; } else { $needcontact = "N"; }
+           // Validate that we have a name and and amount
+           $result = "";
+           
+           	if (!is_numeric($amount)):          // amount not numeric
+           		$result = 'Please specify an amount';
+            elseif (trim($bidder_name == '')):  // pledger name not specified
+              $result = 'Please specify your name';
+            endif;
 
-           $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments` ,`verified`, `needcontact`) VALUES (NULL, \''.$name.'\', \''.$email.'\', \''.$url.'\','.$amount.', \''.$comments.'\', \'N\', \''.$needcontact.'\');';
-           $wpdb->query($sql);
+           if ($result == "") {
+              if ($method == "cheque") { $needcontact = "Y"; } else { $needcontact = "N"; }
 
-           if ($method == "paypal") {
-            $SponsorMeDisplay .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" name="myform">';
-            $SponsorMeDisplay .= '<input type="hidden" name="cmd" value="_xclick">';
-            $SponsorMeDisplay .= '<input type="hidden" name="business" value="'.$paypal.'">';
-            $SponsorMeDisplay .= '<input type="hidden" name="item_name" value="Sponsor Me">';
-            $SponsorMeDisplay .= '<input type="hidden" name="amount" value="'.$amount.'">';
-            $SponsorMeDisplay .= '<input type="hidden" name="shipping" value="0.00">';
-            $SponsorMeDisplay .= '<input type="hidden" name="no_shipping" value="0">';
-            $SponsorMeDisplay .= '<input type="hidden" name="no_note" value="1">';
-            $SponsorMeDisplay .= '<input type="hidden" name="currency_code" value="'.$currency.'">';
-            $SponsorMeDisplay .= '<input type="hidden" name="lc" value="GB">';
-            $SponsorMeDisplay .= '<input type="hidden" name="bn" value="PP-BuyNowBF">';
-            $SponsorMeDisplay .= '<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but02.gif" border="0" name="submit">';
-            $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
-            $SponsorMeDisplay .= '</form>';
-            $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
+              $sql = 'INSERT INTO `'.$table_name.'` (`id`, `name`, `email`, `URL`, `amount`, `comments` ,`verified`, `needcontact`) VALUES (NULL, \''.$name.'\', \''.$email.'\', \''.$url.'\','.$amount.', \''.$comments.'\', \'N\', \''.$needcontact.'\');';
+              $wpdb->query($sql);
+
+              if ($method == "paypal") {
+               $SponsorMeDisplay .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" name="myform">';
+               $SponsorMeDisplay .= '<input type="hidden" name="cmd" value="_xclick">';
+               $SponsorMeDisplay .= '<input type="hidden" name="business" value="'.$paypal.'">';
+               $SponsorMeDisplay .= '<input type="hidden" name="item_name" value="Sponsor Me">';
+               $SponsorMeDisplay .= '<input type="hidden" name="amount" value="'.$amount.'">';
+               $SponsorMeDisplay .= '<input type="hidden" name="shipping" value="0.00">';
+               $SponsorMeDisplay .= '<input type="hidden" name="no_shipping" value="0">';
+               $SponsorMeDisplay .= '<input type="hidden" name="no_note" value="1">';
+               $SponsorMeDisplay .= '<input type="hidden" name="currency_code" value="'.$currency.'">';
+               $SponsorMeDisplay .= '<input type="hidden" name="lc" value="GB">';
+               $SponsorMeDisplay .= '<input type="hidden" name="bn" value="PP-BuyNowBF">';
+               $SponsorMeDisplay .= '<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but02.gif" border="0" name="submit">';
+               $SponsorMeDisplay .= '<img alt="" border="0" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">';
+               $SponsorMeDisplay .= '</form>';
+               $SponsorMeDisplay .= '<SCRIPT language="JavaScript">document.myform.submit();</SCRIPT>';
+              } else {
+               $SponsorMeDisplay .= '<div align="center"><font size="+1">Thank you for your pledge. You will be contacted shortly with details about where to send the cheque. Thank you once again for your generosity.</font></div>';           
+             }
            } else {
-            $SponsorMeDisplay .= '<div align="center"><font size="+1">Thank you for your pledge. You will be contacted shortlye with details about where to send the cheque. Thank you once again for your generosity.</font></div>';           
-           }
-        }  
-
+             $SponsorMeDisplay .= '<div align="center"><font size="+1" color="red">An error have occurred: '.$result.'</font></div>';                   
+           } 
+        }
         $SponsorMeDisplay .= '<div align="center"><img src="'.get_bloginfo('wpurl') . SM_PLUGIN_EXTERNAL_PATH . SM_PLUGIN_NAME .'?graph"><br>Powered by <a href="http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/">SponsorMe Plugin</a></div>';
 
         $SponsorMeDisplay .= '<hr>';
@@ -233,11 +246,11 @@ function SponsorMe_text($text) {
         $SponsorMeDisplay .= '<form class="cmxform" name="sponsorme" method="POST">';
         $SponsorMeDisplay .= '<fieldset>';
         $SponsorMeDisplay .= '<legend>Pledge Details</legend>';
-        $SponsorMeDisplay .= '<table><tr><td><label for "sponsorme_name">Name:</label></td><td><input name="sponsorme_name" id="sponsorme_name" /></td></tr>';
-        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_email">Email</label></td><td><input name="sponsorme_email" id="sponsorme_email" /></td></tr>';
-        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_URL">URL</label></td><td><input name="sponsorme_URL" id="sponsorme_URL" /></td></tr>';
-        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_amount">Amount ('.$currency.')</label></td><td><input name="sponsorme_amount" id="sponsorme_amount" /></td></tr>';
-        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_comment">Comment</label></td><td><textarea name="sponsorme_comments" id="sponsorme_comments" rows="5" cols="40"></textarea></td></tr>';
+        $SponsorMeDisplay .= '<table><tr><td><label for "sponsorme_name">Name:</label></td><td><input name="sponsorme_name" id="sponsorme_name" value="'.$name.'"/></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_email">Email</label></td><td><input name="sponsorme_email" id="sponsorme_email" value="'.$email.'"/></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_URL">URL</label></td><td><input name="sponsorme_URL" id="sponsorme_URL" value="'.$url.'"/></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_amount">Amount ('.$currency.')</label></td><td><input name="sponsorme_amount" id="sponsorme_amount" value="'.$amount.'"/></td></tr>';
+        $SponsorMeDisplay .= '<tr><td><label for "sponsorme_comment">Comment</label></td><td><textarea name="sponsorme_comments" id="sponsorme_comments" rows="5" cols="40">'.$comment.'</textarea></td></tr>';
         $SponsorMeDisplay .= '<tr><td><label for "sponsorme_method">Method</label></td><td><select name="sponsorme_method"><option value="paypal">PayPal</option><option value="cheque">Cheque</option></select></td></tr>';
         $SponsorMeDisplay .= '<tr><td colspan="2" align="center"><input type="hidden" name="sponsorme_process" value="yes"><input type="submit" value="Sponsor Me"></td></tr>';
         $SponsorMeDisplay .= '</table>';        
@@ -260,7 +273,7 @@ function SponsorMe_text($text) {
                  if ($row->URL != '') $SponsorMeDisplay .= '<a href="'.$row->URL.'">';
                  $SponsorMeDisplay .= $row->name;
                  if ($row->URL != '') $SponsorMeDisplay .= '</a>';
-                 $SponsorMeDisplay .= ' - '.$row->amount.' - '.$row->comments.'</li>';
+                 $SponsorMeDisplay .= ' - '.$currency . number_format($row->amount, 2, '.', ',').' - '.$row->comments.'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
            else:
@@ -277,7 +290,7 @@ function SponsorMe_text($text) {
 
             $SponsorMeDisplay .= '<ul>';
 		        foreach ($rows2 as $row) { 
-                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$row->amount.'</li>';
+                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$currency . number_format($row->amount, 2, '.', ',').'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
          endif;
