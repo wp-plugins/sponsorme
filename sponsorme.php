@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.5.1
+Version: 0.5.2
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com
 */
@@ -15,6 +15,7 @@ Author URI: http://www.u-g-h.com
   v0.4 - OwenC - Added ability to accept non-PayPal pledges
   v0.5 - OwenC - Integrated non-paypal pledges to front-end
   v0.5.1 - OwenC - Added some validation to inputs and currency formatting
+  v0.5.2 - OwenC - Bug fixes
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -204,7 +205,7 @@ function SponsorMe_text($text) {
            
            	if (!is_numeric($amount)):          // amount not numeric
            		$result = 'Please specify an amount';
-            elseif (trim($bidder_name == '')):  // pledger name not specified
+            elseif (trim($name == '')):        // pledger name not specified
               $result = 'Please specify your name';
             endif;
 
@@ -273,7 +274,7 @@ function SponsorMe_text($text) {
                  if ($row->URL != '') $SponsorMeDisplay .= '<a href="'.$row->URL.'">';
                  $SponsorMeDisplay .= $row->name;
                  if ($row->URL != '') $SponsorMeDisplay .= '</a>';
-                 $SponsorMeDisplay .= ' - '.$currency . number_format($row->amount, 2, '.', ',').' - '.$row->comments.'</li>';
+                 $SponsorMeDisplay .= ' - '.$currency . number_format($row->amount, 2, '.', '').' - '.$row->comments.'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
            else:
@@ -290,7 +291,7 @@ function SponsorMe_text($text) {
 
             $SponsorMeDisplay .= '<ul>';
 		        foreach ($rows2 as $row) { 
-                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$currency . number_format($row->amount, 2, '.', ',').'</li>';
+                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$currency . number_format($row->amount, 2, '.', '').'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
          endif;
