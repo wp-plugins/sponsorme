@@ -3,9 +3,9 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.5.2
+Version: 0.5.1
 Author: Owen Cutajar
-Author URI: http://www.u-g-h.com
+Author URI: http://www.u-g-h.com 
 */
 
 /* History:
@@ -15,7 +15,7 @@ Author URI: http://www.u-g-h.com
   v0.4 - OwenC - Added ability to accept non-PayPal pledges
   v0.5 - OwenC - Integrated non-paypal pledges to front-end
   v0.5.1 - OwenC - Added some validation to inputs and currency formatting
-  v0.5.2 - OwenC - Bug fixes
+  v0.5.2 - OwenC - Fixed issue with $ currency breaking display - also issue with form style having too common a name
   
   Note: Thanks to Gene for for all your feedback (and text version of widget)
 */
@@ -184,11 +184,14 @@ function SponsorMe_text($text) {
 
         $options = get_option('SponsorMe');
         $title = $options['title'];
-		    $targetdesc = $options['targetdesc'];
-		    $targetamount = $options['targetamount'];
-		    $currency = $options['currency'];
-		    $paypal = $options['paypal'];
+		$targetdesc = $options['targetdesc'];
+	    $targetamount = $options['targetamount'];
+	    $currency = $options['currency'];
+	    $paypal = $options['paypal'];
 
+		// "Gemigene $ bug" - If "$" is used as a currency, it needs to be escaped otherwise pre_replace does a funny
+		if ($currency=="$") {$currency="\\$";}
+		
         // Process if needed
         if ($_POST["sponsorme_process"] == "yes") {
            // Update database
@@ -244,7 +247,7 @@ function SponsorMe_text($text) {
 
 
         $SponsorMeDisplay .= '<p>If you\'d like to help, you can fill in the form below to leave a donation.</p>';
-        $SponsorMeDisplay .= '<form class="cmxform" name="sponsorme" method="POST">';
+        $SponsorMeDisplay .= '<form class="sponsorme_form" name="sponsorme" method="POST">';
         $SponsorMeDisplay .= '<fieldset>';
         $SponsorMeDisplay .= '<legend>Pledge Details</legend>';
         $SponsorMeDisplay .= '<table><tr><td><label for "sponsorme_name">Name:</label></td><td><input name="sponsorme_name" id="sponsorme_name" value="'.$name.'"/></td></tr>';
@@ -274,7 +277,7 @@ function SponsorMe_text($text) {
                  if ($row->URL != '') $SponsorMeDisplay .= '<a href="'.$row->URL.'">';
                  $SponsorMeDisplay .= $row->name;
                  if ($row->URL != '') $SponsorMeDisplay .= '</a>';
-                 $SponsorMeDisplay .= ' - '.$currency . number_format($row->amount, 2, '.', '').' - '.$row->comments.'</li>';
+                 $SponsorMeDisplay .= ' - '.$currency . number_format($row->amount, 2, '.', ',').' - '.$row->comments.'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
            else:
@@ -291,12 +294,11 @@ function SponsorMe_text($text) {
 
             $SponsorMeDisplay .= '<ul>';
 		        foreach ($rows2 as $row) { 
-                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$currency . number_format($row->amount, 2, '.', '').'</li>';
+                $SponsorMeDisplay .= '<li>Awaiting Confirmation - '.$currency . number_format($row->amount, 2, '.', ',').'</li>';
               }
               $SponsorMeDisplay .= '</ul>';
          endif;
        
-
 		$text = preg_replace("|<!--SponsorMe-page-->|", $SponsorMeDisplay, $text);
 
 	}
