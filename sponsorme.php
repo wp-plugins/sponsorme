@@ -3,7 +3,7 @@
 Plugin Name: Sponsor Me
 Plugin URI: http://www.u-g-h.com/index.php/wordpress-plugins/wordpress-plugin-sponsorme/
 Description: Plugin to run a sponsorship campaign that lets friends and family contribute to a target amount.
-Version: 0.5.1
+Version: 0.5.2
 Author: Owen Cutajar
 Author URI: http://www.u-g-h.com 
 */
